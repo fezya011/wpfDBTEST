@@ -14,7 +14,7 @@
 
 
         <StackPanel Grid.Column="0">
-            <ListView ItemsSource="{Binding Products}">
+            <ListView ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="Название" DisplayMemberBinding="{Binding Title}" Width="100"/>
@@ -26,8 +26,8 @@
                 </ListView.View>
                 <ListView.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Удалить"/>
-                        <MenuItem Header="Редактировать"/>
+                        <MenuItem Header="Удалить" Command="{Binding Remove}"/>
+                        <MenuItem Header="Редактировать" Command="{Binding Edit}"/>
                     </ContextMenu>
                 </ListView.ContextMenu>
             </ListView>
@@ -48,7 +48,9 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"> 
                 <Button Content="Сохранить" Command="{Binding Save}"/>
             </StackPanel>
-            
+            <StackPanel >
+                <Button Content="Просмотр" Height="19" Command="{Binding OpenSuppliers}"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

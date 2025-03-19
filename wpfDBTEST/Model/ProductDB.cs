@@ -1,6 +1,7 @@
 ﻿using MySqlConnector;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,25 +9,16 @@ using System.Windows;
 
 namespace wpfDBTEST.Model
 {
-    class ProductDB
+    internal class ProductDB
     {
-        private static ProductDB instance;
-        public static ProductDB Instance
-        {
-            get
-            {
-                if (instance == null)
-                    instance = new ProductDB();
-                return instance;
-            }
-        }
+        
+        ConnectionDB connection;
 
-        MySqlConnection connection;
-
-        internal void SetConnection(MySqlConnection connection)
+        private ProductDB(ConnectionDB db)
         {
-            this.connection = connection;
+            this.connection = db;
         }
+       
 
         public bool Insert(Product Product)
         {
@@ -34,39 +26,37 @@ namespace wpfDBTEST.Model
             if (connection == null)
                 return result;
 
-            connection.Open();
-
-            MySqlCommand cmd = new MySqlCommand("insert into `product` Values (0, @title, @description, @price ,@create_date ,@expire_days);select LAST_INSERT_ID();",
-                 connection);
-            // путем добавления значений в запрос через параметры мы используем экранирование опасных символов
-            cmd.Parameters.Add(new MySqlParameter("title", Product.Title));
-            cmd.Parameters.Add(new MySqlParameter("description", Product.Description));
-            cmd.Parameters.Add(new MySqlParameter("price", Product.Price));
-            cmd.Parameters.Add(new MySqlParameter("create_date", Product.CreateDate));
-            cmd.Parameters.Add(new MySqlParameter("expire_days", Product.ExpireDate));
+            if (connection.OpenConnection())
+            {
+                MySqlCommand cmd = connection.CreateCommand("insert into `product` Values (0, @title, @description, @price ,@create_date ,@expire_days);select LAST_INSERT_ID();");
+ 
+                cmd.Parameters.Add(new MySqlParameter("title", Product.Title));
+                cmd.Parameters.Add(new MySqlParameter("description", Product.Description));
+                cmd.Parameters.Add(new MySqlParameter("price", Product.Price));
+                cmd.Parameters.Add(new MySqlParameter("create_date", Product.CreateDate));
+                cmd.Parameters.Add(new MySqlParameter("expire_days", Product.ExpireDate));
       
-            try
-            {
-                // выполняем запрос через ExecuteScalar, получаем id вставленной записи
-                // если нам не нужен id, то в запросе убираем часть select LAST_INSERT_ID(); и выполняем команду через ExecuteNonQuery
-                int id = (int)(ulong)cmd.ExecuteScalar();
-                if (id > 0)
+                try
                 {
-                    MessageBox.Show(id.ToString());
-                    // назначаем полученный id обратно в объект для дальнейшей работы
-                    Product.ID = id;
-                    result = true;
+                   
+                    int id = (int)(ulong)cmd.ExecuteScalar();
+                    if (id > 0)
+                    {
+                        MessageBox.Show(id.ToString());                     
+                        Product.ID = id;
+                        result = true;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Запись не добавлена");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Запись не добавлена");
+                    MessageBox.Show(ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-            connection.Close();
+            connection.CloseConnection();
             return result;
         }
 
@@ -76,48 +66,49 @@ namespace wpfDBTEST.Model
             if (connection == null)
                 return Products;
 
-            connection.Open();
-            var command = new MySqlCommand("select `id`, `title`, `description`, `price`, `create_date` ,`expire_days`  from `product` ", connection);
-            try
+            if (connection.OpenConnection())
             {
-                // выполнение запроса, который возвращает результат-таблицу
-                MySqlDataReader dr = command.ExecuteReader();
-                // в цикле читаем построчно всю таблицу
-                while (dr.Read())
+                var command = connection.CreateCommand("select `id`, `title`, `description`, `price`, `create_date` ,`expire_days`  from `product` ");
+                try
                 {
-                    int id = dr.GetInt32(0);
-                    string title = string.Empty; 
-                    if (!dr.IsDBNull(1))
-                        title = dr.GetString("title");
-                    string description = string.Empty;
-                    if (!dr.IsDBNull(2))
-                        description = dr.GetString("description");
-                    decimal price = 0;
-                    if (!dr.IsDBNull(3))
-                        price = dr.GetInt32("price");
-                    DateOnly createDate = new DateOnly();
-                    if (!dr.IsDBNull(4))
-                        createDate = dr.GetDateOnly("create_date");
-                    short expireDate = 0;
-                    if (!dr.IsDBNull(5))
-                        expireDate = dr.GetInt16("expire_days");
-                    Products.Add(new Product
+                    MySqlDataReader dr = command.ExecuteReader();   
+                    
+                    while (dr.Read())
                     {
-                        ID = id,
-                        Title = title,
-                        Description = description,
-                        Price = price,
-                        CreateDate = createDate,
-                        ExpireDate = expireDate,
+                        int id = dr.GetInt32(0);
+                        string title = string.Empty; 
+                        if (!dr.IsDBNull(1))
+                            title = dr.GetString("title");
+                        string description = string.Empty;
+                        if (!dr.IsDBNull(2))
+                            description = dr.GetString("description");
+                        decimal price = 0;
+                        if (!dr.IsDBNull(3))
+                            price = dr.GetInt32("price");
+                        DateOnly createDate = new DateOnly();
+                        if (!dr.IsDBNull(4))
+                            createDate = dr.GetDateOnly("create_date");
+                        short expireDate = 0;
+                        if (!dr.IsDBNull(5))
+                            expireDate = dr.GetInt16("expire_days");
+                        Products.Add(new Product
+                        {
+                            ID = id,
+                            Title = title,
+                            Description = description,
+                            Price = price,
+                            CreateDate = createDate,
+                            ExpireDate = expireDate,
 
-                    });
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-            connection.Close();
+            connection.CloseConnection();
             return Products;
         }
 
@@ -127,25 +118,25 @@ namespace wpfDBTEST.Model
             if (connection == null)
                 return result;
 
-            connection.Open();
-            var mc = new MySqlCommand($"update `product` set `title`=@title, `description`=@description , `price`=@price, `create_date`=@create_date , `expire_days`=@expire_days where `id` = {edit.ID}", connection);
-            mc.Parameters.Add(new MySqlParameter("title", edit.Title));
-            mc.Parameters.Add(new MySqlParameter("description", edit.Description));
-            mc.Parameters.Add(new MySqlParameter("price", edit.Price));
-            mc.Parameters.Add(new MySqlParameter("create_date", edit.CreateDate));
-            mc.Parameters.Add(new MySqlParameter("expire_days", edit.ExpireDate));
-        
-
-            try
+            if (connection.OpenConnection())
             {
-                mc.ExecuteNonQuery();
-                result = true;
+                var mc = connection.CreateCommand($"update `product` set `title`=@title, `description`=@description , `price`=@price, `create_date`=@create_date , `expire_days`=@expire_days where `id` = {edit.ID}");
+                mc.Parameters.Add(new MySqlParameter("title", edit.Title));
+                mc.Parameters.Add(new MySqlParameter("description", edit.Description));
+                mc.Parameters.Add(new MySqlParameter("price", edit.Price));
+                mc.Parameters.Add(new MySqlParameter("create_date", edit.CreateDate));
+                mc.Parameters.Add(new MySqlParameter("expire_days", edit.ExpireDate));
+                try
+                {
+                    mc.ExecuteNonQuery();
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-            connection.Close();
+            connection.CloseConnection();
             return result;
         }
 
@@ -156,19 +147,29 @@ namespace wpfDBTEST.Model
             if (connection == null)
                 return result;
 
-            connection.Open();
-            var mc = new MySqlCommand($"delete from `product` where `id` = {remove.ID}", connection);
-            try
+            if (connection.OpenConnection())
             {
-                mc.ExecuteNonQuery();
-                result = true;
+                var mc = connection.CreateCommand($"delete from `product` where `id` = {remove.ID}");
+                try
+                {
+                    mc.ExecuteNonQuery();
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-            connection.Close();
+            connection.CloseConnection();
             return result;
+        }
+
+        static ProductDB db;
+        public static ProductDB GetDb()
+        {
+            if (db == null)
+                db = new ProductDB(ConnectionDB.GetDbConnection());
+            return db;
         }
     }
 

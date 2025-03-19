@@ -7,6 +7,40 @@
         mc:Ignorable="d"
         Title="SuppliersWindow" Height="450" Width="800">
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="70*"/>
+            <ColumnDefinition Width="30*"/>
+        </Grid.ColumnDefinitions>
+
+
+        <StackPanel Grid.Column="0">
+            <ListView ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Название" DisplayMemberBinding="{Binding Title}" Width="100"/>
+                        <GridViewColumn Header="Адрес" DisplayMemberBinding="{Binding Address}" Width="150"/>
+                        <GridViewColumn Header="Телефон" DisplayMemberBinding="{Binding Phone}" Width="100"/>
+                    </GridView>
+                </ListView.View>
+                <ListView.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Удалить" Command="{Binding Remove}"/>
+                        <MenuItem Header="Редактировать" Command="{Binding Edit}"/>
+                    </ContextMenu>
+                </ListView.ContextMenu>
+            </ListView>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1">
+            <TextBlock Text="Название"/>
+            <TextBox Text="{Binding Title}"/>
+            <TextBlock Text="Адрес"/>
+            <TextBox Text="{Binding Address}"/>
+            <TextBlock Text="Телефон" />
+            <TextBox Text="{Binding Phone}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Сохранить" Command="{Binding Save}"/>
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </Window>

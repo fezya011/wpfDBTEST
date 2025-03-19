@@ -9,6 +9,8 @@ using System.Windows.Input;
 using wpfDBTEST.Model;
 using wpfDBTEST.VMTools;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Collections.ObjectModel;
+using wpfDBTEST.View;
 
 namespace wpfDBTEST.ViewModel
 {
@@ -88,13 +90,15 @@ namespace wpfDBTEST.ViewModel
         }
 
         public ICommand Save { get; set; }
+        public ICommand Remove { get; set; }
+        public ICommand Edit { get; set; }
+        public ICommand OpenSuppliers { get; set; }
 
         ConnectionDB db;
         public ProductViewModel()
         {
-            db = new ConnectionDB();
-            db.SetConnection(ProductDB.Instance);
-            Products = new List<Product>(ProductDB.Instance.SelectAll());
+            SelectAll();
+
             Save = new CommandVM(() =>
             {
                 if (string.IsNullOrWhiteSpace(Title) || string.IsNullOrWhiteSpace(Description) || Price == 0 || ExpireDate == 0 )
@@ -111,10 +115,45 @@ namespace wpfDBTEST.ViewModel
                         CreateDate = CreateDate,
                         ExpireDate = ExpireDate
                     };
-                    ProductDB.Instance.Update(product);
+                    ProductDB.GetDb().Insert(product);
                 }
-                Products = new List<Product>(ProductDB.Instance.SelectAll());
-            });      
+               SelectAll();
+            }, () => true);
+
+            Remove = new CommandVM(() =>
+            {
+                ProductDB.GetDb().Remove(SelectedProduct);
+                SelectAll();
+            }, () => SelectedProduct != null);
+
+            Edit = new CommandVM(() =>
+            {
+                if (SelectedProduct != null)
+                {
+                    SelectedProduct.ExpireDate = ExpireDate;
+                    SelectedProduct.Title = Title;
+                    SelectedProduct.Description = Description;
+                    SelectedProduct.Price = Price;
+                    SelectedProduct.CreateDate = CreateDate;              
+                }
+                else
+                {
+                    MessageBox.Show("ОШИБКА");
+                }
+                ProductDB.GetDb().Update(SelectedProduct);
+                MessageBox.Show("Успешно");
+                SelectAll();
+            }, () => SelectedProduct != null);
+            OpenSuppliers = new CommandVM(() =>
+            {
+                SuppliersWindow suppliersWindow = new SuppliersWindow();
+                suppliersWindow.Show();
+            }, () => true);
+        }
+
+        private void SelectAll()
+        {
+            Products = new List<Product>(ProductDB.GetDb().SelectAll());
         }
     }
 }

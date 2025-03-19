@@ -1,6 +1,7 @@
 ﻿using MySqlConnector;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,11 +59,19 @@ namespace wpfDBTEST.Model
                 return;
             }
         }
-
-        internal void SetConnection(ProductDB ProductDB)
+ 
+        internal MySqlCommand CreateCommand(string sql)
         {
-            Config();
-            ProductDB.SetConnection(_connection);
+            return new MySqlCommand(sql, _connection);
+        }
+
+        static ConnectionDB dbConnection;
+        private ConnectionDB() { }
+        public static ConnectionDB GetDbConnection()
+        {
+            if (dbConnection == null)
+                dbConnection = new ConnectionDB();
+            return dbConnection;
         }
     }
 }
